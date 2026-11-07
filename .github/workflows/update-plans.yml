@@ -1,0 +1,35 @@
+name: Update plans
+
+on:
+  schedule:
+    - cron: '17 3 * * *'   # daily, 05:17 Israel winter time
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-plans
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --no-save --no-audit --no-fund jsdom@24.1.3
+      - run: node scripts/update-plans.mjs
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- plans.json && git ls-files --error-unmatch plans.json >/dev/null 2>&1; then
+            echo "No changes"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plans.json
+          git commit -m "Update plans from Supermarker"
+          git push

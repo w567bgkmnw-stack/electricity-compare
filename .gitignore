@@ -4,3 +4,4 @@ meter_LP_*
 *.xlsx
 *.xls
 .DS_Store
+node_modules/

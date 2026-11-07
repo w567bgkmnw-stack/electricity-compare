@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-eS+ZhVleDxKEfMLrGOEdE31VkXSi1J9sUxoiEouVWuk='; style-src 'sha256-5THoruPaMR5E0+e4wrARRiitcK17Ri3fWIOG0gBo0EA='; img-src data:; connect-src https://www.supermarker.themarker.com https://api.allorigins.win https://api.codetabs.com https://api.cors.lol; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HzHimv6mSSaOObMro0ZA4u2aKZ0Bkp8HH7f4u1mhXr4='; style-src 'sha256-5THoruPaMR5E0+e4wrARRiitcK17Ri3fWIOG0gBo0EA='; img-src data:; connect-src 'self' https://www.supermarker.themarker.com https://api.allorigins.win https://api.codetabs.com https://api.cors.lol; form-action 'none'; base-uri 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <title>השוואת ספקי חשמל</title>
 <style>
@@ -352,9 +352,31 @@ function parsePlansDoc(doc) {
   });
   return { plans: out, checked: checked ? checked.s : '' };
 }
+// Validate a plan object from an untrusted source (plans.json). Returns a clean copy or null.
+function cleanPlan(o) {
+  if (!o || typeof o !== 'object') return null;
+  const str = function (v, n) { return typeof v === 'string' && v.trim() && v.length <= n ? v.trim() : null; };
+  const id = typeof o.id === 'string' && /^sm-\d{1,6}$/.test(o.id) ? o.id : null;
+  const sup = str(o.sup, 60), name = str(o.name, 120);
+  const disc = +o.disc, from = +o.from, to = +o.to;
+  if (!id || !sup || !name || !(disc > 0 && disc <= 60)) return null;
+  if (!(Number.isInteger(from) && Number.isInteger(to) && from >= 0 && from <= 23 && to >= 1 && to <= 24 && from !== to)) return null;
+  if (!Array.isArray(o.days) || !o.days.length || o.days.length > 7) return null;
+  const days = [];
+  for (const d of o.days) { if (!Number.isInteger(d) || d < 0 || d > 6 || days.indexOf(d) >= 0) return null; days.push(d); }
+  days.sort();
+  const p = { id: id, sup: sup, name: name, disc: disc, from: from, to: to, days: days };
+  if (o.smart === true) p.smart = true;
+  if (o.hol === true) p.hol = true;
+  if (o.cashback === true) { p.cashback = true; p.cap = (+o.cap > 0 && +o.cap <= 1000) ? +o.cap : 50; }
+  if (o.fee !== undefined) { const f = +o.fee; if (!(f >= 0 && f < 100)) return null; if (f) p.fee = f; }
+  if (o.cond !== undefined) { const c = str(o.cond, 80); if (!c) return null; p.cond = c; }
+  if (o.note !== undefined) { const n = str(o.note, 160); if (n) p.note = n; }
+  return p;
+}
 // CORE-END
 
-if (typeof document === 'undefined') { if (typeof module !== 'undefined') module.exports = { parseUsage, evaluate, PLANS, manualRecords, inWindow, DEFAULT_HOLIDAYS, parsePlansDoc }; return; }
+if (typeof document === 'undefined') { if (typeof module !== 'undefined') module.exports = { parseUsage, evaluate, PLANS, manualRecords, inWindow, DEFAULT_HOLIDAYS, parsePlansDoc, cleanPlan }; return; }
 
 // ---------- UI ----------
 const $ = function (id) { return document.getElementById(id); };
@@ -423,6 +445,7 @@ function plansStatus(msg, kind) { const s = $('plansStatus'); s.textContent = ms
 
 const PLANS_URL = 'https://www.supermarker.themarker.com/bills/electricity';
 const ROUTES = [
+  { name: 'מהעדכון היומי של האתר', url: 'plans.json', json: true },
   { name: 'ישירות מהאתר', url: PLANS_URL },
   { name: 'דרך AllOrigins', url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(PLANS_URL) },
   { name: 'דרך CodeTabs', url: 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(PLANS_URL) },
@@ -434,6 +457,16 @@ function parsePlansText(text) {
   const doc = new DOMParser().parseFromString(text, 'text/html');
   const res = parsePlansDoc(doc);
   return res.plans.length >= 8 ? res : null;
+}
+function parsePlansJson(text) {
+  if (!text || text.length > 1024 * 1024) return null;
+  let o; try { o = JSON.parse(text); } catch (e) { return null; }
+  if (!o || !Array.isArray(o.plans) || o.plans.length > 200) return null;
+  const list = [], ids = new Set();
+  for (const raw of o.plans) { const c = cleanPlan(raw); if (c && !ids.has(c.id)) { ids.add(c.id); list.push(c); } }
+  if (list.length < 8) return null;
+  const checked = typeof o.checked === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(o.checked) ? o.checked : '';
+  return { plans: list, checked: checked };
 }
 let fetching = false;
 async function refreshPlans() {
@@ -447,7 +480,7 @@ async function refreshPlans() {
       try {
         const resp = await fetch(r.url, { credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal: ac.signal });
         if (!resp.ok) continue;
-        const res = parsePlansText(await resp.text());
+        const res = r.json ? parsePlansJson(await resp.text()) : parsePlansText(await resp.text());
         if (!res) continue;
         setPlans(res.plans);
         plansStatus('✓ ' + res.plans.length + ' מסלולים עדכניים הורדו ' + r.name + (res.checked ? ' (נבדקו מול הספקים ' + res.checked + ')' : '') + ', ' + new Date().toLocaleString('he-IL') + '.', 'ok');
