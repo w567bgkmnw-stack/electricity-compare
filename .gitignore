@@ -1,0 +1,6 @@
+# Never commit personal usage data
+*.csv
+meter_LP_*
+*.xlsx
+*.xls
+.DS_Store

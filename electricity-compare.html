@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-eS+ZhVleDxKEfMLrGOEdE31VkXSi1J9sUxoiEouVWuk='; style-src 'sha256-5THoruPaMR5E0+e4wrARRiitcK17Ri3fWIOG0gBo0EA='; img-src data:; connect-src https://www.supermarker.themarker.com https://api.allorigins.win https://api.codetabs.com https://api.cors.lol; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>השוואת ספקי חשמל</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1b1f24;--muted:#5b6470;--line:#dde1e6;--accent:#0b6bcb;--good:#127a3e;--goodbg:#e6f5ec;--warn:#9a5b00;--warnbg:#fff4e0;--bar1:#0b6bcb;--bar2:#9aa6b2;--bad:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1b1e23;--ink:#e8eaed;--muted:#9aa3ad;--line:#2d323a;--accent:#5aa9ff;--good:#5fd38d;--goodbg:#15301f;--warn:#ffc266;--warnbg:#33270f;--bar1:#5aa9ff;--bar2:#5d6773;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,"Segoe UI",Arial,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:.2em 0}
+h2{font-size:1.15rem;margin:0 0 .5em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button{border:1px solid var(--line);background:transparent;color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+.tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.hidden{display:none}
+button.act{background:var(--accent);color:#fff;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+button.sec{background:transparent;color:var(--ink);border:1px solid var(--line);padding:7px 12px;border-radius:8px;cursor:pointer;font:inherit}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:22px;text-align:center}
+.drop.over{border-color:var(--accent)}
+input[type=number],input[type=text],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 7px}
+input[type=number]{width:5.5em}
+.grid24{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.grid24 label{display:flex;flex-direction:column;font-size:.8rem;color:var(--muted)}
+.grid24 input{width:100%}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{border-bottom:1px solid var(--line);padding:7px 6px;text-align:right;white-space:nowrap}
+th{color:var(--muted);font-weight:600}
+tr.best td{background:var(--goodbg)}
+tr.inel td{opacity:.55}
+.tag{display:inline-block;font-size:.75rem;border-radius:5px;padding:1px 6px;background:var(--warnbg);color:var(--warn);margin-inline-start:4px}
+.bestbox{background:var(--goodbg);border-radius:10px;padding:14px;margin-bottom:12px}
+.bestbox strong{color:var(--good);font-size:1.15rem}
+.pos{color:var(--good);font-weight:600}.neg{color:var(--bad);font-weight:600}.zero{color:var(--muted)}
+.ok{color:var(--good)}.warnt{color:var(--warn)}
+.err{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:10px;margin-top:10px}
+svg text{fill:var(--muted);font-size:10px}
+.legend{display:flex;gap:14px;font-size:.85rem}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;margin-inline-end:4px;vertical-align:middle}
+.sw1{background:var(--bar1)}.sw2{background:var(--bar2)}
+textarea{width:100%;min-height:90px;direction:ltr;text-align:left}
+@media (max-width:600px){.grid24{grid-template-columns:repeat(4,1fr)}}
+.mt8{margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+<h1>השוואת ספקי חשמל לפי הצריכה שלי</h1>
+<p class="muted small">הכלי פועל בדפדפן במחשב שלך. הגישה היחידה שלו לרשת היא הורדת רשימת המסלולים הציבורית, וכל כתובת אחרת חסומה בהגדרות האבטחה של הקובץ. נתוני הצריכה לא נשלחים ולא נשמרים, וסגירת הלשונית מוחקת אותם.</p>
+
+<section class="card">
+<h2>1. נתוני הצריכה</h2>
+<div class="tabs" id="tabs">
+<button type="button" data-tab="file" class="on">קובץ צריכה (CSV)</button>
+<button type="button" data-tab="manual">הזנה ידנית לפי שעה</button>
+</div>
+
+<div id="tab-file">
+<div class="drop" id="drop">
+<p><strong>גררו לכאן את קובץ הצריכה</strong> או <label><input type="file" id="file" accept=".csv,.txt,text/csv,text/plain"></label></p>
+<p class="muted small">נתמך: קובץ meter_LP מחברת החשמל, או כל CSV עם תאריך, שעה וצריכה בקוט"ש (פעימות של 15 דקות או של שעה). קובץ Excel יש לשמור קודם בפורמט CSV.</p>
+</div>
+<details class="small mt8"><summary>איך משיגים קובץ?</summary>
+<p>חברת החשמל: אזור אישי ← פעולות ← מחשבוני צריכה ← לנתוני הצריכה שלך ← מצב צריכה עדכני ← קבלת קובץ למייל. מי שכבר עבר לספק פרטי בדרך כלל לא יכול להיכנס לאזור האישי. במקרה כזה אפשר לבקש מבזק energy את נתוני הצריכה השעתיים כקובץ, או להשתמש בהזנה הידנית לפי הגרפים באפליקציה.</p>
+</details>
+<div class="row small mt8"><label>לחשב רק מתאריך: <input type="date" id="fromDate"></label><span class="muted">ריק = 365 הימים האחרונים בקובץ</span></div>
+<div id="fileStatus" class="small" role="status"></div>
+</div>
+
+<div id="tab-manual" class="hidden">
+<p class="small muted">הזינו צריכה ממוצעת בקוט"ש לכל שעה ביממה (שעה 7 = 07:00-08:00), לפי הגרפים באפליקציה. אפשר להתחיל מפרופיל טיפוסי ולתקן.</p>
+<div class="row small">
+<label>צריכה חודשית (קוט"ש) <input type="number" id="monthly" min="0" max="20000" step="1" value="450"></label>
+<button type="button" class="sec" id="fillTypical">מלא פרופיל טיפוסי</button>
+</div>
+<h3 class="small">ימי חול (א'-ה')</h3>
+<div class="grid24" id="gridWk"></div>
+<h3 class="small">סוף שבוע (ו'-ש')</h3>
+<div class="grid24" id="gridWe"></div>
+<p><button type="button" class="act" id="calcManual">חשב</button></p>
+<p class="muted small">בהזנה ידנית אין תאריכים, ולכן חגים לא מוחרגים. התוצאה קצת אופטימית למסלולי בזק החלוניים.</p>
+</div>
+</section>
+
+<section class="card">
+<h2>2. פרטים עליי</h2>
+<div class="row small">
+<label><input type="checkbox" id="hasSmart" checked> יש לי מונה חכם</label>
+<span id="condBox" class="row"></span>
+</div>
+<div class="row small mt8">
+<label>המסלול הנוכחי שלי: <select id="current"></select></label>
+<label>תעריף בסיס (₪ לקוט"ש כולל מע"מ): <input type="number" id="tariff" step="0.0001" min="0.1" max="3" value="0.6352"></label>
+</div>
+</section>
+
+<section class="card hidden" id="results">
+<h2>3. התוצאה</h2>
+<div id="best" class="bestbox"></div>
+<div class="legend"><span><span class="sw sw1"></span>ימי חול</span><span><span class="sw sw2"></span>סוף שבוע</span></div>
+<div id="chart"></div>
+<div class="tablewrap"><table id="tbl"><thead><tr>
+<th>#</th><th>ספק</th><th>מסלול</th><th>חלון ההנחה</th><th>הנחה</th><th>מהצריכה בחלון</th><th>הנחה אפקטיבית</th><th>לעומת המסלול הנוכחי, בשנה</th>
+</tr></thead><tbody></tbody></table></div>
+<p id="extra" class="small"></p>
+<p class="muted small">החיסכון מחושב על רכיב הצריכה בלבד, לשנה (נתונים של יותר משנה: 365 הימים האחרונים; פחות משנה: מוכפל ל-365 ימים). התשלומים הקבועים (חלוקה, אספקה, קיבולת) זהים אצל כל הספקים ולא נכללים. כל שעה משויכת ליום שבו היא מתחילה (חמישי 23:00 בתוך א'-ה', שישי 02:00 מחוץ). מסלול Partner קבוע: 5% בשנה הראשונה.</p>
+<p><button type="button" class="sec" id="clear">מחק את הנתונים מהדף</button></p>
+</section>
+
+<section class="card">
+<h2>מסלולים ותאריכי חגים</h2>
+<div class="row small"><span id="plansStatus" role="status"></span></div>
+<div class="row small mt8"><button type="button" class="sec" id="refreshPlans">רענן מסלולים עכשיו</button>
+<label>או טען דף השוואה שנשמר מ-Safari (HTML): <input type="file" id="plansFile" accept=".html,.htm,.webarchive,text/html"></label></div>
+<p class="small muted">בכל פתיחה הדף מוריד את רשימת המסלולים העדכנית מהשוואת Supermarker. נשלחת רק בקשה לדף ההשוואה הציבורי; נתוני הצריכה שלך לא נשלחים לשום מקום. אם ההורדה נכשלת, משמשת הרשימה המובנית. ספקים משנים תנאים, אז בדקו מול הספק לפני מעבר. אפשר לשנות כאן אחוז הנחה; השינוי תקף רק לשימוש הנוכחי.</p>
+<div class="tablewrap"><table id="plansTbl"><thead><tr><th>פעיל</th><th>ספק</th><th>מסלול</th><th>חלון</th><th>ימים</th><th>הנחה %</th><th>דמי תפעול ₪/חודש</th><th>הערות</th></tr></thead><tbody></tbody></table></div>
+<details class="small mt8"><summary>חגים וערבי חג (מוחרגים במסלולים החלוניים של בזק)</summary>
+<p class="muted">תאריך בכל שורה (YYYY-MM-DD). הרשימה לפי לוח השנה העברי 2024-2027; לא ברור אם בזק מחריגה גם את יום העצמאות, כך שאפשר למחוק אותו.</p>
+<textarea id="holidays" spellcheck="false"></textarea>
+</details>
+</section>
+</main>
+
+<script>
+'use strict';
+(function () {
+// CORE-START
+const SUN_THU = [0, 1, 2, 3, 4];
+const ALL = [0, 1, 2, 3, 4, 5, 6];
+const PLANS = [
+  { id: 'sp-day', sup: 'סופר פאוור', name: 'מסלול יום', disc: 21, from: 7, to: 17, days: SUN_THU, smart: true },
+  { id: 'sp-night', sup: 'סופר פאוור', name: 'לילה פלוס', disc: 21, from: 23, to: 7, days: SUN_THU, smart: true },
+  { id: 'sp-10x10', sup: 'סופר פאוור', name: '10X10', disc: 10, from: 10, to: 22, days: SUN_THU, smart: true },
+  { id: 'sp-power', sup: 'סופר פאוור', name: 'POWER', disc: 6.5, from: 0, to: 24, days: ALL },
+  { id: 'cc-day', sup: 'סלקום Energy', name: 'חסכון ביום', disc: 20, from: 7, to: 17, days: SUN_THU, smart: true },
+  { id: 'cc-family', sup: 'סלקום Energy', name: 'חסכון למשפחות', disc: 18, from: 14, to: 20, days: SUN_THU, smart: true },
+  { id: 'cc-night', sup: 'סלקום Energy', name: 'חסכון בלילה', disc: 15, from: 23, to: 7, days: ALL, smart: true },
+  { id: 'cc-flat', sup: 'סלקום Energy', name: 'חסכון משתלם', disc: 7.5, from: 0, to: 24, days: SUN_THU },
+  { id: 'pp-night', sup: 'Partner Power', name: 'חיות לילה', disc: 20, from: 23, to: 7, days: SUN_THU, smart: true, note: 'עמלת הוראת קבע 8.10 ₪/חודש אפשרית' },
+  { id: 'pp-wfh', sup: 'Partner Power', name: 'עובדים מהבית', disc: 15, from: 7, to: 17, days: SUN_THU, smart: true, note: 'עמלת הוראת קבע 8.10 ₪/חודש אפשרית' },
+  { id: 'pp-fixed', sup: 'Partner Power', name: 'הנחה קבועה כל היום', disc: 5, from: 0, to: 24, days: ALL, note: '6% מהשנה השנייה, 7% מהשלישית' },
+  { id: 'bz-night', sup: 'בזק energy', name: 'חוסכים חכם בלילה', disc: 20, from: 23, to: 7, days: SUN_THU, smart: true, hol: true },
+  { id: 'bz-day', sup: 'בזק energy', name: 'חוסכים חכם ביום', disc: 15, from: 7, to: 17, days: SUN_THU, smart: true, hol: true },
+  { id: 'bz-247', sup: 'בזק energy', name: 'חוסכים חכם 24/7', disc: 6, from: 0, to: 24, days: ALL },
+  { id: 'hot-night', sup: 'HOT energy', name: 'חוסכים בלילה', disc: 20, from: 23, to: 7, days: SUN_THU, smart: true },
+  { id: 'hot-day', sup: 'HOT energy', name: 'חוסכים ביום', disc: 15, from: 7, to: 17, days: SUN_THU, smart: true },
+  { id: 'hot-fixed', sup: 'HOT energy', name: 'חוסכים קבוע', disc: 6, from: 0, to: 24, days: ALL, cond: 'ללקוחות HOT או NEXT TV' },
+  { id: 'hot-247', sup: 'HOT energy', name: 'חוסכים 24/7', disc: 5, from: 0, to: 24, days: ALL },
+  { id: 'am-gas', sup: 'אמישראגז ENERGY', name: 'הנחה ללקוחות גז', disc: 7, from: 0, to: 24, days: ALL, cond: 'ללקוחות גז של אמישראגז' },
+  { id: 'am-basic', sup: 'אמישראגז ENERGY', name: 'הנחה קבועה', disc: 6, from: 0, to: 24, days: ALL },
+  { id: 'pz-fixed', sup: 'פזגז חשמל', name: 'חוסכים קבוע', disc: 5, from: 0, to: 24, days: ALL, fee: 2.9 },
+  { id: 'pz-cash', sup: 'פזגז חשמל', name: 'צוברים קבוע (צבירה באפליקציה)', disc: 10, from: 0, to: 24, days: ALL, fee: 2.9, cashback: true, cap: 50 }
+];
+const DEFAULT_HOLIDAYS = [
+  // 2024
+  '2024-04-22', '2024-04-23', '2024-04-28', '2024-04-29', '2024-05-13', '2024-05-14', '2024-06-11', '2024-06-12',
+  '2024-10-02', '2024-10-03', '2024-10-04', '2024-10-11', '2024-10-12', '2024-10-16', '2024-10-17', '2024-10-23', '2024-10-24',
+  // 2025
+  '2025-04-12', '2025-04-13', '2025-04-18', '2025-04-19', '2025-04-30', '2025-05-01', '2025-06-01', '2025-06-02',
+  '2025-09-22', '2025-09-23', '2025-09-24', '2025-10-01', '2025-10-02', '2025-10-06', '2025-10-07', '2025-10-13', '2025-10-14',
+  // 2026
+  '2026-04-01', '2026-04-02', '2026-04-07', '2026-04-08', '2026-04-21', '2026-04-22', '2026-05-21', '2026-05-22',
+  '2026-09-11', '2026-09-12', '2026-09-13', '2026-09-20', '2026-09-21', '2026-09-25', '2026-09-26', '2026-10-02', '2026-10-03',
+  // 2027
+  '2027-04-21', '2027-04-22', '2027-04-27', '2027-04-28', '2027-05-11', '2027-05-12', '2027-06-10', '2027-06-11',
+  '2027-10-01', '2027-10-02', '2027-10-03', '2027-10-10', '2027-10-11', '2027-10-15', '2027-10-16', '2027-10-22', '2027-10-23'
+];
+const DAY_NAMES = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function dowOf(y, m, d) { return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); }
+function validYMD(y, m, d) {
+  if (!(y >= 2000 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return false;
+  const t = new Date(Date.UTC(y, m - 1, d));
+  return t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+}
+function inWindow(h, from, to) {
+  if (from === 0 && to === 24) return true;
+  return from < to ? (h >= from && h < to) : (h >= from || h < to);
+}
+
+const RE_DMY = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:[ T]+(\d{1,2}):(\d{2})(?::\d{2})?)?$/;
+const RE_YMD = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T]+(\d{1,2}):(\d{2})(?::\d{2})?)?$/;
+const RE_TIME = /^(\d{1,2}):(\d{2})(?::\d{2})?$/;
+const RE_NUM = /^-?(?:\d+(?:\.\d*)?|\.\d+)$/;
+
+function splitLine(line) {
+  const sep = line.indexOf(';') >= 0 && line.indexOf(',') < 0 ? ';' : (line.indexOf('\t') >= 0 && line.indexOf(',') < 0 ? '\t' : ',');
+  return line.split(sep).map(function (s) { return s.trim().replace(/^"+|"+$/g, '').trim(); });
+}
+
+// Returns { records: [{date, dow, hour, kwh}], skipped, lines }
+function parseUsage(text) {
+  const byHour = new Map();
+  let skipped = 0, lines = 0;
+  const rows = text.replace(/^\uFEFF/, '').split(/\r?\n/);
+  for (let i = 0; i < rows.length; i++) {
+    const raw = rows[i];
+    if (!raw || !/\d/.test(raw)) continue;
+    lines++;
+    const f = splitLine(raw);
+    let y, m, d, hh = null, mm = 0, used = new Set();
+    for (let j = 0; j < f.length; j++) {
+      let r = RE_DMY.exec(f[j]);
+      if (r) { d = +r[1]; m = +r[2]; y = +r[3]; if (y < 100) y += 2000; if (r[4] !== undefined) { hh = +r[4]; mm = +r[5]; } used.add(j); break; }
+      r = RE_YMD.exec(f[j]);
+      if (r) { y = +r[1]; m = +r[2]; d = +r[3]; if (r[4] !== undefined) { hh = +r[4]; mm = +r[5]; } used.add(j); break; }
+    }
+    if (y === undefined) { skipped++; continue; }
+    if (hh === null) {
+      for (let j = 0; j < f.length; j++) {
+        if (used.has(j)) continue;
+        const r = RE_TIME.exec(f[j]);
+        if (r) { hh = +r[1]; mm = +r[2]; used.add(j); break; }
+      }
+    }
+    let kwh = NaN;
+    for (let j = 0; j < f.length; j++) {
+      if (used.has(j)) continue;
+      if (RE_NUM.test(f[j])) { kwh = parseFloat(f[j]); break; }
+    }
+    if (hh === 24 && mm === 0) hh = 0; // rare "24:00" notation is treated as start of hour 0 of same date row
+    if (hh === null || hh < 0 || hh > 23 || mm < 0 || mm > 59 || !validYMD(y, m, d) || !isFinite(kwh) || kwh < 0 || kwh > 500) { skipped++; continue; }
+    const date = y + '-' + pad(m) + '-' + pad(d);
+    const key = date + ' ' + pad(hh);
+    const prev = byHour.get(key);
+    if (prev) prev.kwh += kwh;
+    else byHour.set(key, { date: date, dow: dowOf(y, m, d), hour: hh, kwh: kwh });
+  }
+  let records = Array.from(byHour.values());
+  // keep the last 365 days only
+  if (records.length) {
+    let max = '';
+    for (const r of records) if (r.date > max) max = r.date;
+    const mx = new Date(max + 'T00:00:00Z');
+    mx.setUTCDate(mx.getUTCDate() - 364);
+    const min = mx.toISOString().slice(0, 10);
+    records = records.filter(function (r) { return r.date >= min; });
+  }
+  return { records: records, skipped: skipped, lines: lines };
+}
+
+// Manual: one representative week (7 dates-less days)
+function manualRecords(wk, we) {
+  const recs = [];
+  for (let dow = 0; dow < 7; dow++) {
+    const arr = dow <= 4 ? wk : we;
+    for (let h = 0; h < 24; h++) recs.push({ date: '', dow: dow, hour: h, kwh: Math.max(0, +arr[h] || 0), day: 'w' + dow });
+  }
+  return recs;
+}
+
+// opts: {tariff, holidays:Set, hasSmart, hot, gas}
+function evaluate(records, plans, opts) {
+  const days = new Set(records.map(function (r) { return r.date || r.day; })).size || 1;
+  const scale = 365 / days;
+  let total = 0;
+  for (const r of records) total += r.kwh;
+  const baseAnnual = total * opts.tariff * scale;
+  const out = plans.map(function (p) {
+    let inWin = 0;
+    for (const r of records) {
+      if (p.days.indexOf(r.dow) < 0) continue;
+      if (!inWindow(r.hour, p.from, p.to)) continue;
+      if (p.hol && r.date && opts.holidays.has(r.date)) continue;
+      inWin += r.kwh;
+    }
+    const share = total > 0 ? inWin / total : 0;
+    const fees = (p.fee || 0) * 12;
+    let saving;
+    if (p.cashback) {
+      const monthlyCash = Math.min(inWin * opts.tariff * scale / 12 * p.disc / 100, p.cap || Infinity);
+      saving = monthlyCash * 12 - fees;
+    } else {
+      saving = inWin * opts.tariff * scale * p.disc / 100 - fees;
+    }
+    let ok = true, why = '';
+    if (p.smart && !opts.hasSmart) { ok = false; why = 'דורש מונה חכם'; }
+    if (p.cond && !(opts.conds && opts.conds.has(p.cond))) { ok = false; why = p.cond + ' בלבד'; }
+    if (p.cashback) { ok = false; why = 'צבירה באפליקציה, לא הנחה בחשבון'; }
+    return { plan: p, share: share, eff: baseAnnual > 0 ? saving / baseAnnual : 0, saving: saving, eligible: ok, why: why };
+  });
+  return { days: days, total: total, annualKwh: total * scale, baseAnnual: baseAnnual, rows: out };
+}
+const PLANS_CHECKED = '02/10/2026';
+
+// Parse the Supermarker comparison page (a parsed Document; scripts in it never run).
+function parsePlansDoc(doc) {
+  const out = [], seen = new Set();
+  let checked = '';
+  const txt = function (e) { return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  doc.querySelectorAll('li[data-plan-id]').forEach(function (li) {
+    const pid = li.getAttribute('data-plan-id') || '';
+    if (!/^\d{1,6}$/.test(pid) || seen.has(pid)) return;
+    const name = txt(li.querySelector('h3 a') || li.querySelector('h3'));
+    const sup = txt(li.querySelector('.bl-prov')) || (li.getAttribute('data-provider') || '');
+    const disc = parseFloat(li.getAttribute('data-pct'));
+    if (!name || !sup || name.length > 80 || sup.length > 60 || !(disc > 0 && disc <= 60)) return;
+    const dayEls = li.querySelectorAll('.el-days li');
+    if (dayEls.length !== 7) return;
+    const days = [];
+    dayEls.forEach(function (d, i) { if (d.classList.contains('on')) days.push(i); });
+    if (!days.length) return;
+    const when = txt(li.querySelector('.el-when__t'));
+    let from, to;
+    const m = /(\d{1,2}):(\d{2})\s*[-\u2013]\s*(\d{1,2}):(\d{2})/.exec(when);
+    if (m) {
+      if (m[2] !== '00' || m[4] !== '00') return; // only whole-hour windows are supported
+      from = +m[1]; to = +m[3];
+      if (to === 0) to = 24;
+      if (from > 23 || to > 24 || from === to) return;
+    } else if (/כל שעות היממה/.test(when)) { from = 0; to = 24; } else return;
+    const plan = { id: 'sm-' + pid, sup: sup, name: name, disc: disc, from: from, to: to, days: days };
+    if (li.getAttribute('data-smart') === '1') plan.smart = true;
+    const notes = [];
+    let condText = '';
+    li.querySelectorAll('.el-chips li').forEach(function (c) {
+      const t = txt(c);
+      let f;
+      if (/^מונה חכם/.test(t)) return;
+      if (/ערבי חג/.test(t)) { plan.hol = true; return; }
+      if ((f = /דמי תפעול\s*([\d.]+)/.exec(t))) { const v = parseFloat(f[1]); if (v >= 0 && v < 100) plan.fee = v; return; }
+      if (/צבירה/.test(t)) return;
+      if (/סולר/.test(t)) { notes.push(t.split(',')[0]); return; }
+      if (!condText) condText = t; else notes.push(t);
+    });
+    if (li.getAttribute('data-cond') === '1') plan.cond = (condText || 'מסלול מותנה').slice(0, 80);
+    else if (condText) notes.push(condText);
+    const pctTxt = txt(li.querySelector('.el-pct'));
+    if (li.getAttribute('data-cash') === '1') {
+      plan.cashback = true;
+      const c = /עד\s*(\d+)\s*₪\s*לחודש/.exec(pctTxt);
+      plan.cap = c ? +c[1] : 50;
+      plan.name += ' (צבירה באפליקציה)';
+    }
+    const tier = /\d+(?:\.\d+)?% מהשנה[^]*/.exec(pctTxt);
+    if (tier) notes.push(tier[0]);
+    if (notes.length) plan.note = notes.join(' · ').slice(0, 160);
+    const meta = /נבדק\s*(\d{2})\/(\d{2})\/(\d{4})/.exec(txt(li.querySelector('.bl-meta')));
+    if (meta) { const k = meta[3] + meta[2] + meta[1]; if (!checked || k > checked.k) checked = { k: k, s: meta[1] + '/' + meta[2] + '/' + meta[3] }; }
+    seen.add(pid);
+    out.push(plan);
+  });
+  return { plans: out, checked: checked ? checked.s : '' };
+}
+// CORE-END
+
+if (typeof document === 'undefined') { if (typeof module !== 'undefined') module.exports = { parseUsage, evaluate, PLANS, manualRecords, inWindow, DEFAULT_HOLIDAYS, parsePlansDoc }; return; }
+
+// ---------- UI ----------
+const $ = function (id) { return document.getElementById(id); };
+function el(tag, attrs, children) {
+  const e = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    if (k === 'text') e.textContent = attrs[k];
+    else if (k === 'class') e.className = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  (children || []).forEach(function (c) { e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+  return e;
+}
+const nis = function (v) { return '₪' + Math.round(v).toLocaleString('he-IL'); };
+const pct = function (v, d) { return (v * 100).toFixed(d === undefined ? 1 : d) + '%'; };
+function windowText(p) { return (p.from === 0 && p.to === 24) ? 'כל היממה' : pad(p.from) + ':00-' + pad(p.to === 24 ? 0 : p.to) + ':00'; }
+function daysText(p) {
+  const base = p.days.length === 7 ? 'כל השבוע' : (p.days.join() === '0,1,2,3,4' ? "א'-ה'" : p.days.map(function (d) { return DAY_NAMES[d] + "'"; }).join(','));
+  return base + (p.hol ? ' (ללא חגים)' : '');
+}
+
+let records = null, fullRecords = null, fullSkipped = 0;
+function applyRange() {
+  if (!fullRecords) return;
+  const from = $('fromDate').value;
+  records = /^\d{4}-\d{2}-\d{2}$/.test(from) ? fullRecords.filter(function (r) { return r.date >= from; }) : fullRecords;
+  if (!records.length) { status('אין נתונים מהתאריך שנבחר.', true); records = null; $('results').classList.add('hidden'); return; }
+  const dates = records.map(function (r) { return r.date; }).sort();
+  const tot = records.reduce(function (a, r) { return a + r.kwh; }, 0);
+  status('נקראו ' + records.length.toLocaleString('he-IL') + ' שעות, ' + dates[0] + ' עד ' + dates[dates.length - 1] + ', סה"כ ' + Math.round(tot).toLocaleString('he-IL') + ' קוט"ש' + (fullSkipped ? ' (' + fullSkipped + ' שורות כותרת/לא רלוונטיות דולגו)' : '') + '.', false);
+  recalc();
+}
+const MAX_BYTES = 30 * 1024 * 1024;
+
+// plans table
+let plans = [];
+const condState = new Map();
+function setPlans(list) {
+  const prevCur = plans.find(function (p) { return p.id === $('current').value; });
+  plans = list.map(function (p) { return Object.assign({ enabled: true }, p, { days: p.days.slice() }); });
+  const tb = $('plansTbl').tBodies[0]; tb.textContent = '';
+  plans.forEach(function (p) {
+    const cb = el('input', { type: 'checkbox' }); cb.checked = true;
+    cb.addEventListener('change', function () { p.enabled = cb.checked; recalc(); });
+    const di = el('input', { type: 'number', min: '0', max: '60', step: '0.5', value: String(p.disc) });
+    di.addEventListener('change', function () { const v = parseFloat(di.value); if (isFinite(v) && v >= 0 && v <= 60) { p.disc = v; recalc(); } else di.value = String(p.disc); });
+    const notes = [p.cond || '', p.note || '', p.cashback ? 'צבירה עד ' + (p.cap || 50) + ' ₪/חודש; רבעון מתחת ל-50 ₪ נמחק' : '', p.smart ? 'מונה חכם' : ''].filter(Boolean).join(' · ');
+    tb.appendChild(el('tr', null, [el('td', null, [cb]), el('td', { text: p.sup }), el('td', { text: p.name }), el('td', { text: windowText(p) }), el('td', { text: daysText(p) }), el('td', null, [di]), el('td', { text: p.fee ? String(p.fee) : '-' }), el('td', { class: 'small muted', text: notes })]));
+  });
+  const sel = $('current'); sel.textContent = '';
+  sel.appendChild(el('option', { value: '', text: 'חברת החשמל (ללא הנחה)' }));
+  plans.forEach(function (p) { if (!p.cashback) sel.appendChild(el('option', { value: p.id, text: p.sup + ' - ' + p.name })); });
+  const match = prevCur && plans.find(function (p) { return p.sup === prevCur.sup && p.name === prevCur.name; });
+  sel.value = match ? match.id : '';
+  const box = $('condBox'); box.textContent = '';
+  const conds = [];
+  plans.forEach(function (p) { if (p.cond && conds.indexOf(p.cond) < 0) conds.push(p.cond); });
+  conds.forEach(function (c) {
+    const i = el('input', { type: 'checkbox' }); i.checked = !!condState.get(c);
+    i.addEventListener('change', function () { condState.set(c, i.checked); recalc(); });
+    box.appendChild(el('label', null, [i, ' אני זכאי: ' + c]));
+  });
+  recalc();
+}
+function plansStatus(msg, kind) { const s = $('plansStatus'); s.textContent = msg; s.className = kind || ''; }
+
+const PLANS_URL = 'https://www.supermarker.themarker.com/bills/electricity';
+const ROUTES = [
+  { name: 'ישירות מהאתר', url: PLANS_URL },
+  { name: 'דרך AllOrigins', url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(PLANS_URL) },
+  { name: 'דרך CodeTabs', url: 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(PLANS_URL) },
+  { name: 'דרך cors.lol', url: 'https://api.cors.lol/?url=' + encodeURIComponent(PLANS_URL) }
+];
+const MAX_PAGE = 8 * 1024 * 1024;
+function parsePlansText(text) {
+  if (!text || text.length > MAX_PAGE) return null;
+  const doc = new DOMParser().parseFromString(text, 'text/html');
+  const res = parsePlansDoc(doc);
+  return res.plans.length >= 8 ? res : null;
+}
+let fetching = false;
+async function refreshPlans() {
+  if (fetching) return;
+  fetching = true; $('refreshPlans').disabled = true;
+  plansStatus('מוריד את המסלולים העדכניים...', 'muted');
+  try {
+    for (const r of ROUTES) {
+      const ac = new AbortController();
+      const timer = setTimeout(function () { ac.abort(); }, 15000);
+      try {
+        const resp = await fetch(r.url, { credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal: ac.signal });
+        if (!resp.ok) continue;
+        const res = parsePlansText(await resp.text());
+        if (!res) continue;
+        setPlans(res.plans);
+        plansStatus('✓ ' + res.plans.length + ' מסלולים עדכניים הורדו ' + r.name + (res.checked ? ' (נבדקו מול הספקים ' + res.checked + ')' : '') + ', ' + new Date().toLocaleString('he-IL') + '.', 'ok');
+        return;
+      } catch (e) { /* try next route */ } finally { clearTimeout(timer); }
+    }
+    plansStatus('לא הצלחתי להוריד מסלולים עדכניים, ולכן משמשת הרשימה המובנית (נבדקה ' + PLANS_CHECKED + '). אפשר לנסות שוב או לטעון דף שמור.', 'warnt');
+  } finally { fetching = false; $('refreshPlans').disabled = false; }
+}
+$('refreshPlans').addEventListener('click', refreshPlans);
+$('plansFile').addEventListener('change', async function (e) {
+  const f = e.target.files[0]; if (!f) return;
+  if (f.size > MAX_PAGE) { plansStatus('הקובץ גדול מדי.', 'warnt'); return; }
+  const res = parsePlansText(await f.text());
+  if (!res) { plansStatus('לא נמצאו מסלולים בקובץ. שמרו מ-Safari את הדף השוואת ספקי חשמל כ"מקור הדף" (Page Source) ונסו שוב.', 'warnt'); return; }
+  setPlans(res.plans);
+  plansStatus('✓ ' + res.plans.length + ' מסלולים נטענו מהקובץ ששמרת' + (res.checked ? ' (נבדקו מול הספקים ' + res.checked + ')' : '') + '.', 'ok');
+});
+$('holidays').value = DEFAULT_HOLIDAYS.join('\n');
+
+function readHolidays() {
+  const s = new Set();
+  $('holidays').value.split(/\s+/).forEach(function (t) { if (/^\d{4}-\d{2}-\d{2}$/.test(t)) s.add(t); });
+  return s;
+}
+
+// tabs
+document.querySelectorAll('#tabs button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelectorAll('#tabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    $('tab-file').classList.toggle('hidden', b.dataset.tab !== 'file');
+    $('tab-manual').classList.toggle('hidden', b.dataset.tab !== 'manual');
+  });
+});
+
+// file input
+function status(msg, isErr) {
+  const s = $('fileStatus');
+  s.textContent = '';
+  s.appendChild(el('div', { class: isErr ? 'err' : '', text: msg }));
+}
+async function handleFile(file) {
+  if (!file) return;
+  if (file.size > MAX_BYTES) { status('הקובץ גדול מדי (מעל 30MB).', true); return; }
+  if (/\.(xlsx?|xlsm)$/i.test(file.name)) { status('זה קובץ Excel. פתחו אותו ושמרו בשם בפורמט CSV, ואז טענו שוב.', true); return; }
+  try {
+    const buf = await file.arrayBuffer();
+    let text = new TextDecoder('utf-8').decode(buf);
+    if (text.indexOf('\uFFFD') >= 0) { try { text = new TextDecoder('windows-1255').decode(buf); } catch (e) { /* keep utf-8 */ } }
+    const res = parseUsage(text);
+    if (!res.records.length) { status('לא נמצאו שורות עם תאריך, שעה וצריכה. בדקו שהקובץ הוא קובץ צריכה שעתי ונסו שוב.', true); return; }
+    fullRecords = res.records; fullSkipped = res.skipped;
+    applyRange();
+  } catch (e) {
+    status('לא ניתן לקרוא את הקובץ.', true);
+  }
+}
+$('file').addEventListener('change', function (e) { handleFile(e.target.files[0]); });
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+['dragleave', 'drop'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+// prevent the browser from navigating to a file dropped outside the box
+window.addEventListener('dragover', function (e) { e.preventDefault(); });
+window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+// manual grid
+function buildGrid(id) {
+  const g = $(id), inputs = [];
+  for (let h = 0; h < 24; h++) {
+    const i = el('input', { type: 'number', min: '0', max: '50', step: '0.01', value: '0' });
+    inputs.push(i);
+    g.appendChild(el('label', null, [pad(h) + ':00', i]));
+  }
+  return inputs;
+}
+const wkIn = buildGrid('gridWk'), weIn = buildGrid('gridWe');
+function fillTypical() {
+  const monthly = Math.max(0, Math.min(20000, parseFloat($('monthly').value) || 0));
+  const daily = monthly * 12 / 365;
+  // Electricity Authority normative split: ~25% night 23-07, ~41% day 07-17, ~34% evening 17-23
+  for (let h = 0; h < 24; h++) {
+    const share = (h >= 23 || h < 7) ? 0.25 / 8 : (h < 17 ? 0.41 / 10 : 0.34 / 6);
+    const v = (daily * share).toFixed(2);
+    wkIn[h].value = v; weIn[h].value = v;
+  }
+}
+fillTypical();
+$('fillTypical').addEventListener('click', fillTypical);
+$('calcManual').addEventListener('click', function () {
+  records = manualRecords(wkIn.map(function (i) { return parseFloat(i.value); }), weIn.map(function (i) { return parseFloat(i.value); }));
+  recalc();
+});
+
+['hasSmart', 'current', 'tariff'].forEach(function (id) { $(id).addEventListener('change', recalc); });
+$('holidays').addEventListener('change', recalc);
+$('fromDate').addEventListener('change', applyRange);
+$('clear').addEventListener('click', function () {
+  records = null; fullRecords = null; $('file').value = ''; $('fileStatus').textContent = ''; $('results').classList.add('hidden');
+  $('tbl').tBodies[0].textContent = ''; $('chart').textContent = ''; $('best').textContent = ''; $('extra').textContent = '';
+});
+
+function drawChart(recs) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const sum = [new Array(24).fill(0), new Array(24).fill(0)];
+  const dset = [new Set(), new Set()];
+  recs.forEach(function (r) { const k = r.dow <= 4 ? 0 : 1; sum[k][r.hour] += r.kwh; dset[k].add(r.date || r.day); });
+  const avg = sum.map(function (a, k) { const n = dset[k].size || 1; return a.map(function (v) { return v / n; }); });
+  const max = Math.max.apply(null, avg[0].concat(avg[1]).concat([0.01]));
+  const W = 720, H = 180, pl = 30, pb = 18, bw = (W - pl) / 24;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('width', '100%'); svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'צריכה ממוצעת לפי שעה');
+  for (let h = 0; h < 24; h++) {
+    [0, 1].forEach(function (k) {
+      const v = avg[k][h], bh = (H - pb - 6) * v / max;
+      const r = document.createElementNS(NS, 'rect');
+      // draw left-to-right in time even in RTL page
+      r.setAttribute('x', String(pl + h * bw + 2 + k * (bw - 4) / 2)); r.setAttribute('y', String(H - pb - bh));
+      r.setAttribute('width', String((bw - 4) / 2)); r.setAttribute('height', String(bh));
+      r.setAttribute('fill', k ? 'var(--bar2)' : 'var(--bar1)');
+      const t = document.createElementNS(NS, 'title'); t.textContent = pad(h) + ':00 ' + (k ? 'סופ"ש' : 'חול') + ': ' + v.toFixed(2) + ' קוט"ש';
+      r.appendChild(t); svg.appendChild(r);
+    });
+    if (h % 3 === 0) { const tx = document.createElementNS(NS, 'text'); tx.setAttribute('x', String(pl + h * bw + 2)); tx.setAttribute('y', String(H - 4)); tx.textContent = pad(h); svg.appendChild(tx); }
+  }
+  const ty = document.createElementNS(NS, 'text'); ty.setAttribute('x', '0'); ty.setAttribute('y', '12'); ty.textContent = max.toFixed(2); svg.appendChild(ty);
+  $('chart').textContent = ''; $('chart').appendChild(svg);
+}
+
+function deltaCell(v, isCur, cash) {
+  if (isCur) return el('td', { class: 'zero', text: 'המסלול הנוכחי' });
+  const r = Math.round(v);
+  if (r === 0) return el('td', { class: 'zero', text: 'ללא הפרש' });
+  return el('td', { class: r > 0 ? 'pos' : 'neg', text: (r > 0 ? (cash ? 'צבירה של ' : 'חיסכון ') : 'עלות עודפת ') + nis(Math.abs(r)) });
+}
+function recalc() {
+  if (!records) return;
+  const tariff = parseFloat($('tariff').value);
+  if (!(tariff > 0 && tariff < 3)) return;
+  const res = evaluate(records, plans.filter(function (p) { return p.enabled; }), {
+    tariff: tariff, holidays: readHolidays(), hasSmart: $('hasSmart').checked, conds: new Set(Array.from(condState.entries()).filter(function (e) { return e[1]; }).map(function (e) { return e[0]; }))
+  });
+  const curId = $('current').value;
+  const curRow = res.rows.find(function (r) { return r.plan.id === curId; });
+  const curSaving = curRow ? curRow.saving : 0;
+  const ranked = res.rows.slice().sort(function (a, b) { return (b.eligible - a.eligible) || (b.saving - a.saving); });
+  const best = ranked.find(function (r) { return r.eligible; });
+
+  $('results').classList.remove('hidden');
+  drawChart(records);
+
+  const bb = $('best'); bb.textContent = '';
+  if (best) {
+    const diff = best.saving - curSaving;
+    bb.appendChild(el('div', null, ['המסלול המשתלם ביותר עבורך: ', el('strong', { text: best.plan.sup + ' - ' + best.plan.name })]));
+    const curName = curRow ? 'המסלול הנוכחי שלך' : 'חברת החשמל';
+    bb.appendChild(el('div', { text: best.plan.id === curId ? 'זה המסלול שיש לך כבר. אין צורך לעבור.' : (Math.round(diff) > 0 ? 'חיסכון של כ-' + nis(diff) + ' בשנה לעומת ' + curName + '.' : 'ההפרש מ' + curName + ' זניח.') }));
+    bb.appendChild(el('div', { class: 'small', text: 'הנחה אפקטיבית ' + pct(best.eff) + ' על רכיב הצריכה.' }));
+    bb.appendChild(el('div', { class: 'small muted', text: 'צריכה שנתית: כ-' + Math.round(res.annualKwh).toLocaleString('he-IL') + ' קוט"ש, רכיב צריכה כ-' + nis(res.baseAnnual) + ' בשנה, מבוסס על ' + res.days + ' ימי נתונים.' }));
+  } else {
+    bb.appendChild(el('div', { text: 'אין מסלול זמין לפי הסינון.' }));
+  }
+
+  const tb = $('tbl').tBodies[0]; tb.textContent = '';
+  let n = 0;
+  ranked.forEach(function (r) {
+    const p = r.plan;
+    const nameCell = el('td', null, [p.name]);
+    if (!r.eligible) nameCell.appendChild(el('span', { class: 'tag', text: r.why }));
+    if (p.id === curId) nameCell.appendChild(el('span', { class: 'tag', text: 'נוכחי' }));
+    const vsCur = r.saving - curSaving;
+    const tr = el('tr', { class: (r === best ? 'best' : '') + (r.eligible ? '' : ' inel') }, [
+      el('td', { text: r.eligible ? String(++n) : '-' }), el('td', { text: p.sup }), nameCell,
+      el('td', { text: windowText(p) + ' · ' + daysText(p) }), el('td', { text: p.disc + '%' }),
+      el('td', { text: pct(r.share, 0) }), el('td', { text: pct(r.eff) }),
+      deltaCell(vsCur, p.id === curId, p.cashback)
+    ]);
+    tb.appendChild(tr);
+  });
+  $('extra').textContent = 'ההבדל בין מסלולים מגיע מהשאלה כמה מהצריכה שלך נופלת בתוך חלון ההנחה. עמלת הוראת קבע של Partner ותשלום מעבר בין מסלולים לא נכללו.';
+}
+setPlans(PLANS);
+plansStatus('מסלולים מובנים (נבדקו ' + PLANS_CHECKED + ').', 'muted');
+refreshPlans();
+})();
+</script>
+</body>
+</html>
